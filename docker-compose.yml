@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: db-practice:latest
+    container_name: db-practice-container
+    ports:
+      - "8080:8080"
+    environment:
+      DATASOURCE_URL: jdbc:postgresql://db:5432/db_practice
+      DATASOURCE_USERNAME: postgres
+      DATASOURCE_PASSWORD: postgres
+    depends_on:
+      - db
+      - liquibase-migrations
+    networks:
+      - backend
+
+  liquibase-migrations:
+    image: liquibase/liquibase:4.25
+    container_name: liquibase-container
+    depends_on:
+      - db
+    command:
+      - --changeLogFile=master.xml
+      - --driver=org.postgresql.Driver
+      - --url=jdbc:postgresql://db:5432/db_practice
+      - --username=postgres
+      - --password=postgres
+      - update
+    volumes:
+      - ./migrations/liquibase:/liquibase/changelog
+    networks:
+      - backend
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-container
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: db_practice
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgresql:/var/lib/postgresql/data
+    networks:
+      - backend
+
+volumes:
+  postgresql: {}
+
+networks:
+  backend:
+    driver: bridge
